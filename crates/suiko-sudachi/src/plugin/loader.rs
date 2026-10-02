@@ -14,7 +14,12 @@
  *  limitations under the License.
  */
 
+#[cfg(not(target_family = "wasm"))]
 use libloading::{Library, Symbol};
+
+/// Shared libraries cannot be loaded on wasm, so only bundled plugins work there.
+#[cfg(target_family = "wasm")]
+type Library = ();
 use serde_json::Value;
 
 use crate::config::{Config, ConfigError};
@@ -71,7 +76,8 @@ fn make_system_specific_name(s: &str) -> Option<String> {
     target_os = "ios",
     target_os = "tvos",
     target_os = "watchos",
-    target_os = "visionos"
+    target_os = "visionos",
+    target_family = "wasm"
 ))]
 // Apple embedded platforms do not support dynamic library loading (DSO plugins)
 // due to platform security restrictions. Returning None here
@@ -158,6 +164,7 @@ impl<'a, 'b, T: PluginCategory + ?Sized> PluginLoader<'a, 'b, T> {
         resolved
     }
 
+    #[cfg(not(target_family = "wasm"))]
     fn try_load_library_from(candidates: &[String]) -> SudachiResult<(Library, &str)> {
         if candidates.is_empty() {
             return Err(SudachiError::PluginError(PluginError::InvalidDataFormat(
@@ -178,6 +185,18 @@ impl<'a, 'b, T: PluginCategory + ?Sized> PluginLoader<'a, 'b, T> {
         }))
     }
 
+    #[cfg(target_family = "wasm")]
+    fn load_plugin_from_dso(
+        &mut self,
+        candidates: &[String],
+    ) -> SudachiResult<<T as PluginCategory>::BoxType> {
+        Err(SudachiError::ConfigError(ConfigError::InvalidFormat(format!(
+            "cannot load plugin libraries on wasm: {:?}",
+            candidates
+        ))))
+    }
+
+    #[cfg(not(target_family = "wasm"))]
     fn load_plugin_from_dso(
         &mut self,
         candidates: &[String],

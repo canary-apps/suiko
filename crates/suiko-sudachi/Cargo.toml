@@ -37,7 +37,6 @@ fancy-regex = "0.13"
 indexmap = "2.2"
 itertools = "0.13"
 lazy_static = "1.4"
-libloading = "0.8"
 memmap2 = "0.9"
 nom = "7"
 regex = "1"
@@ -46,6 +45,10 @@ serde_json = "1.0"
 thiserror = "1.0"
 unicode-normalization = "0.1"
 yada = "0.5"
+
+# Shared-library plugins cannot be loaded on wasm.
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+libloading = "0.8"
 
 [dev-dependencies]
 claim = "0.5"
